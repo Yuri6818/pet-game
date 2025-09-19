@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐾 Virtual Pet Adventure</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🐾 Virtual Pet Adventure</h1>
+      <div class="timer" id="serverTime"></div>
+      
+      <div class="nav">
+        <button id="btn-home" class="nav-btn active" onclick="showSection('home')">🏠 Home</button>
+        <button id="btn-pets" class="nav-btn" onclick="showSection('pets')">🐾 Pets</button>
+        <button id="btn-inventory" class_="nav-btn" onclick="showSection('inventory')">📦 Inventory</button>
+        <button id="btn-shop" class="nav-btn" onclick="showSection('shop')">🛒 Shop</button>
+        <button id="btn-activities" class="nav-btn" onclick="showSection('activities')">⚡ Activities</button>
+        <button id="btn-battle" class="nav-btn" onclick="showSection('battle')" hidden>⚔️ Battle</button>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-item">💰 Coins: <span id="coinCount">150</span></div>
+        <div class="status-item">✨ Dust: <span id="dustCount">25</span></div>
+        <div class="status-item">🎯 Level: <span id="playerLevel">1</span></div>
+        <div class="status-item">⭐ XP: <span id="playerXP">0</span>/100</div>
+      </div>
+    </div>
+
+    <!-- Home Section -->
+    <div class="section active" id="home">
+      <h2>🏠 Welcome Home!</h2>
+      <p>Welcome to your Virtual Pet Adventure! Check out the latest updates and manage your pets.</p>
+      
+      <div class="grid">
+        <div class="card">
+          <div class="card-image">🎉</div>
+          <h3>Daily Bonus</h3>
+          <p>Claim your daily rewards!</p>
+          <button class="btn" onclick="claimDaily()">Claim Bonus</button>
+        </div>
+        
+        <div class="card">
+          <div class="card-image">📰</div>
+          <h3>Latest News</h3>
+          <p>New pets and items available in shop!</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-image">🏆</div>
+          <h3>Achievements</h3>
+          <p>Track your progress and unlock rewards</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pets Section -->
+    <div class="section" id="pets">
+      <h2>🐾 Your Pets</h2>
+      <p>Manage and interact with your beloved companions!</p>
+      <div class="grid" id="petContainer"></div>
+    </div>
+
+    <!-- Inventory Section -->
+    <div class="section" id="inventory">
+      <h2>📦 Your Inventory</h2>
+      <p>Items and treasures you've collected on your journey.</p>
+      <div class="grid" id="inventoryContainer"></div>
+    </div>
+
+    <!-- Shop Section -->
+    <div class="section" id="shop">
+      <h2>🛒 Mystical Shop</h2>
+      <p>Purchase items and pets to enhance your adventure!</p>
+      <div class="grid" id="shopContainer"></div>
+    </div>
+
+    <!-- Activities Section -->
+    <div class="section" id="activities">
+      <h2>⚡ Activities</h2>
+      <p>Engage in various activities to earn rewards and experience!</p>
+      <div class="activity-section">
+        
+        <div class="activity-card">
+          <h3>🌿 Foraging</h3>
+          <p>Search for herbs and magical items in the forest.</p>
+          <div class="progress-bar">
+            <div class="progress-fill" id="foragingProgress" style="width: 0%"></div>
+          </div>
+          <button class="activity-btn" id="foragingBtn" onclick="startForaging()">Start Foraging</button>
+        </div>
+
+        <div class="activity-card">
+          <h3>⛏️ Mining</h3>
+          <p>Dig deep to find precious gems and minerals.</p>
+          <div class="progress-bar">
+            <div class="progress-fill" id="miningProgress" style="width: 0%"></div>
+          </div>
+          <button class="activity-btn" id="miningBtn" onclick="startMining()">Start Mining</button>
+        </div>
+
+        <div class="activity-card">
+          <h3>🎣 Fishing</h3>
+          <p>Cast your line and catch magical fish.</p>
+          <div class="progress-bar">
+            <div class="progress-fill" id="fishingProgress" style="width: 0%"></div>
+          </div>
+          <button class="activity-btn" id="fishingBtn" onclick="startFishing()">Start Fishing</button>
+        </div>
+
+        <div class="activity-card">
+          <h3>🐾 Catch Pet</h3>
+          <p>Try to catch a new companion!</p>
+          <div class="progress-bar">
+            <div class="progress-fill" id="catchingProgress" style="width: 0%"></div>
+          </div>
+          <button class="activity-btn" id="catchingBtn" onclick="startCatching()">Start Catching</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Battle Section -->
+    <div class="section" id="battle">
+      <h2>⚔️ Battle! ⚔️</h2>
+      <div class="battle-arena">
+        <div class="battle-pet" id="player-pet">
+          <!-- Player's pet will be rendered here -->
+        </div>
+        <div class="battle-pet" id="opponent-pet">
+          <!-- Opponent's pet will be rendered here -->
+        </div>
+      </div>
+      <div class.="battle-log" id="battle-log">
+        <!-- Battle log messages will be rendered here -->
+      </div>
+      <div class="battle-actions" id="battle-actions">
+        <button class="btn" onclick="battleAction('attack')">Attack</button>
+        <button class="btn" onclick="battleAction('defend')">Defend</button>
+        <button class="btn" onclick="battleAction('run')">Run</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Element -->
+  <div class="notification" id="notification"></div>
+
+  <!-- Hatching Animation -->
+  <div id="hatching-overlay" class="hidden">
+    <div class="egg"></div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/battle.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
