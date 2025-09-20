@@ -7,7 +7,7 @@ let gameState = {
   lastDaily: null,
   pets: [
     { id: 1, name: "Shadowfang", species: "Wolf", level: 5, xp: 0, image: "img/wolf.jpg", hunger: 80, thirst: 70, happiness: 90, hp: 100, attack: 20, defense: 10, speed: 15 },
-    { id: 2, name: "Whiskers", species: "Cat", level: 3, xp: 0, image: "img/cat.jpg", hunger: 90, thirst: 80, happiness: 95, hp: 80, attack: 15, defense: 8, speed: 20 },
+    { id: 2, name: "Whiskers", species: "Cat", level: 3, xp: 0, image: "img/cat.png", hunger: 90, thirst: 80, happiness: 95, hp: 80, attack: 15, defense: 8, speed: 20 },
     { id: 3, name: "Ember", species: "Dragon", level: 8, xp: 0, image: "img/dragon.jpg", hunger: 70, thirst: 60, happiness: 80, hp: 120, attack: 25, defense: 15, speed: 10 }
   ],
   inventory: [
