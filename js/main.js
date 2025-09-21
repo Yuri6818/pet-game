@@ -39,6 +39,15 @@ function loadGame() {
     }
     
     // Now merge the rest of the game state
+    // Ensure activities keys exist
+    const requiredActivities = ['foraging','mining','fishing','catching'];
+    if (!savedGameState.activities) savedGameState.activities = {};
+    requiredActivities.forEach(a => {
+      if (!Object.prototype.hasOwnProperty.call(savedGameState.activities, a)) {
+        savedGameState.activities[a] = { active: false, progress: 0 };
+      }
+    });
+
     gameState = { ...gameState, ...savedGameState };
   }
 }

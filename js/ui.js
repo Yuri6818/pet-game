@@ -15,6 +15,16 @@ function updateUI() {
   playerXPEl.textContent = gameState.xp;
 }
 
+// Resolve image source via petImages mapping (falls back to item.image or default)
+function getImageSrc(item) {
+  if (!item) return petImages && petImages.default ? petImages.default : 'img/monster.jpg';
+  if (item.image) return item.image;
+  const key = (item.name || item.species || '').toLowerCase().replace(/\s+/g, '');
+  if (window.petImages && window.petImages[key]) return window.petImages[key];
+  if (petImages && petImages[key]) return petImages[key];
+  return 'img/monster.jpg';
+}
+
 function updateServerTime() {
   const now = new Date();
   serverTimeEl.textContent = now.toLocaleTimeString();
@@ -72,19 +82,39 @@ function spawnOrb(targetElement, count = 1) {
 
 function showHatchingAnimation(callback) {
   hatchingOverlay.classList.remove('hidden');
-  const egg = hatchingOverlay.querySelector('.egg');
-  egg.classList.add('wobble');
+  hatchingOverlay.innerHTML = '<div class="egg-container"><div class="egg wobble"></div></div>';
+  const container = hatchingOverlay.querySelector('.egg-container');
+  const egg = container.querySelector('.egg');
 
+  // After wobble, crack and spawn shards
   setTimeout(() => {
     egg.classList.remove('wobble');
     egg.classList.add('crack');
-  }, 2000);
 
+    // Spawn a few shard elements that animate outward
+    for (let i = 0; i < 6; i++) {
+      const shard = document.createElement('div');
+      shard.className = 'egg-shard';
+      shard.style.left = (90 + Math.random() * 40) + 'px';
+      shard.style.top = (90 + Math.random() * 40) + 'px';
+      shard.style.transform = `rotate(${Math.random()*360}deg)`;
+      shard.style.transition = `transform 900ms ease-out, opacity 900ms ease-out`;
+      container.appendChild(shard);
+      // animate outward
+      setTimeout(() => {
+        shard.style.transform = `translate(${(Math.random()-0.5)*200}px, ${(Math.random()-0.5)*200}px) rotate(${Math.random()*360}deg)`;
+        shard.style.opacity = '0';
+      }, 40 + i * 60);
+      setTimeout(() => shard.remove(), 1200);
+    }
+
+  }, 1200);
+
+  // finish animation and call callback
   setTimeout(() => {
-    egg.classList.remove('crack');
     hatchingOverlay.classList.add('hidden');
     callback();
-  }, 4000);
+  }, 2000);
 }
 
 // Render Functions
@@ -97,7 +127,7 @@ function renderPets() {
     div.className = 'card pet-card';
     div.dataset.petId = pet.id;
     // Safe image handling: prefer pet.image, fall back to species-based or default image
-    const imgSrc = pet.image || (`img/${(pet.species || 'pet').toLowerCase()}.jpg`) || 'img/monster.jpg';
+    const imgSrc = getImageSrc(pet);
     div.innerHTML = `
       <div class="card-image">
         <img src="${imgSrc}" alt="${pet.name}" style="width: 100%; height: 100%; border-radius: 50%;" onerror="this.onerror=null;this.src='img/monster.jpg'">
@@ -156,8 +186,9 @@ function renderInventory() {
     }
 
     div.innerHTML = `
-      <div class="card-image">${item.emoji}</div>
+      <div class="card-image">${item.emoji || ''}</div>
       <h3>${item.name}</h3>
+      <p class="item-desc">${item.description || ''}</p>
       <p class="item-quantity">x${item.quantity}</p>
       ${buttonHtml}
     `;
@@ -175,7 +206,7 @@ function renderShop() {
     const canAfford = gameState[item.currency] >= item.price;
     let imageHtml = '';
     if (item.image) {
-      imageHtml = `<img src="${item.image}" alt="${item.name}" style="width: 100%; height: 100%; border-radius: 50%;" onerror="this.onerror=null;this.src='img/monster.jpg'">`;
+      imageHtml = `<img src="${getImageSrc(item)}" alt="${item.name}" style="width: 100%; height: 100%; border-radius: 50%;" onerror="this.onerror=null;this.src='img/monster.jpg'">`;
     } else {
       imageHtml = item.emoji || '';
     }
@@ -183,6 +214,7 @@ function renderShop() {
     div.innerHTML = `
       <div class="card-image">${imageHtml}</div>
       <h3>${item.name}</h3>
+      <p class="item-desc">${item.description || ''}</p>
       <div class="price">
         <p>${item.currency === 'coins' ? '💰' : '✨'} ${item.price}</p>
       </div>
@@ -201,9 +233,11 @@ function renderAllSections() {
 }
 
 /* ---------- Fun helpers: confetti & sound ---------- */
-function playSound(freq = 440, duration = 0.15, type = 'sine') {
+let _audioCtx = null;
+function playSound(freq = 440, duration = 0.12, type = 'sine') {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx;
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.type = type;
@@ -211,21 +245,25 @@ function playSound(freq = 440, duration = 0.15, type = 'sine') {
     o.connect(g);
     g.connect(ctx.destination);
     g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.01);
     o.start();
     setTimeout(() => {
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-      setTimeout(() => { o.stop(); ctx.close(); }, duration * 1000 + 50);
+      try {
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+      } catch (e) {}
+      setTimeout(() => { try { o.stop(); } catch(e){} }, duration * 1000 + 50);
     }, duration * 1000);
   } catch (e) {
-    // Audio may be blocked; fail silently
     console.warn('Audio unavailable', e);
   }
 }
 
-function spawnConfetti(count = 24) {
+function spawnConfetti(count = 12) {
   const colors = ['#ff6b6b','#feca57','#ff9ff3','#48dbfb','#1dd1a1','#5f27cd'];
-  for (let i = 0; i < count; i++) {
+  // Create fewer confetti pieces and batch DOM insertion.
+  const fragment = document.createDocumentFragment();
+  const pieces = Math.max(6, Math.min(20, Math.floor(count/2)));
+  for (let i = 0; i < pieces; i++) {
     const el = document.createElement('div');
     el.className = 'confetti-piece';
     el.style.left = Math.random() * 100 + 'vw';
@@ -234,15 +272,16 @@ function spawnConfetti(count = 24) {
     el.style.top = '-10vh';
     el.style.opacity = '1';
     el.style.animation = `confetti-fall ${2 + Math.random()*2}s linear forwards`;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 5000);
+    fragment.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
   }
+  document.body.appendChild(fragment);
 }
 
 function celebrate() {
   // quick tri-tone
   playSound(880, 0.08, 'sine');
-  setTimeout(() => playSound(1100, 0.08, 'sine'), 100);
-  setTimeout(() => playSound(660, 0.18, 'sawtooth'), 220);
-  spawnConfetti(30);
+  setTimeout(() => playSound(1100, 0.08, 'sine'), 90);
+  setTimeout(() => playSound(660, 0.12, 'sawtooth'), 180);
+  spawnConfetti(12);
 }

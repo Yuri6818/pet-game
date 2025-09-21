@@ -1,3 +1,5 @@
+console.log("game.js loaded");
+
 // Game Functions
 function claimDaily() {
   const today = new Date().toDateString();
@@ -31,7 +33,9 @@ function buyItem(itemId) {
   if (confirmation) {
     gameState[currency] -= cost;
 
-    if (item.type === 'pet') {
+    if (item.name === 'Mystery Box') {
+      buyMysteryBox();
+    } else if (item.type === 'pet') {
       const newPet = createPetFromItem(item, gameState.pets.length + 1);
       gameState.pets.push(newPet);
       renderPets();
@@ -58,6 +62,56 @@ function buyItem(itemId) {
     spawnOrb(currency === 'coins' ? coinCountEl : dustCountEl);
     updateUI();
     saveGame();
+  }
+}
+
+function buyMysteryBox() {
+  // Create a deterministic non-empty pool that excludes Mystery Box itself
+  const pool = shopItems.filter(i => i.id && i.id !== 205);
+  if (!pool.length) {
+    // fallback to hatchablePets
+    pool.push(...hatchablePets);
+  }
+
+  // choose item/pet
+  const randomIndex = Math.floor(Math.random() * pool.length);
+  const randomItem = pool[randomIndex];
+  if (!randomItem) {
+    showNotification('The box was empty... try again later.');
+    return;
+  }
+
+  // Defer UI-heavy effects so click handlers finish quickly
+  if (randomItem.type === 'pet' || randomItem.type === undefined && randomItem.hp) {
+    const newPet = createPetFromItem(randomItem, gameState.pets.length + 1);
+    gameState.pets.push(newPet);
+    renderPets();
+    saveGame();
+    setTimeout(() => {
+      showNotification(`You got a new pet: ${newPet.name} from the Mystery Box!`);
+      celebrate();
+    }, 80);
+  } else {
+    // Add to inventory with unique id
+    const existingItem = gameState.inventory.find(i => i.name === randomItem.name);
+    if (existingItem) {
+      existingItem.quantity = (existingItem.quantity || 0) + 1;
+    } else {
+      gameState.inventory.push({
+        id: randomItem.id || Date.now() + Math.floor(Math.random() * 1000),
+        name: randomItem.name || 'Mysterious Item',
+        emoji: randomItem.emoji,
+        quantity: 1,
+        type: randomItem.type || 'consumable',
+        description: randomItem.description || ''
+      });
+    }
+    renderInventory();
+    saveGame();
+    setTimeout(() => {
+      showNotification(`You got a ${randomItem.name} from the Mystery Box!`);
+      celebrate();
+    }, 80);
   }
 }
 
@@ -194,7 +248,7 @@ function completeActivity(activityName) {
     foraging: { coins: 15, dust: 2, xp: 10 },
     mining: { coins: 25, dust: 1, xp: 15 },
     fishing: { coins: 20, dust: 3, xp: 12 },
-    catching: { xp: 20 }
+    catching: { coins: 10, dust: 5, xp: 20 }
   };
 
   const reward = rewards[activityName];

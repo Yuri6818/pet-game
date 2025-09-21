@@ -8,10 +8,14 @@ let battleState = {
 
 function startBattle(petId) {
   const playerPet = gameState.pets.find(p => p.id === petId);
+  if (!playerPet) {
+    showNotification('Selected pet not found for battle.');
+    return;
+  }
   const opponentPet = opponents[Math.floor(Math.random() * opponents.length)];
 
-  battleState.playerPet = { ...playerPet, currentHp: playerPet.hp };
-  battleState.opponentPet = { ...opponentPet, currentHp: opponentPet.hp };
+  battleState.playerPet = { ...playerPet, currentHp: Number(playerPet.hp) || 50 };
+  battleState.opponentPet = { ...opponentPet, currentHp: Number(opponentPet.hp) || 50 };
   battleState.log = [];
 
   showSection('battle');
@@ -26,8 +30,8 @@ function renderBattle() {
   const player = battleState.playerPet || {};
   const opponent = battleState.opponentPet || {};
 
-  const playerImg = player.image || `img/${(player.species || 'pet').toLowerCase()}.jpg` || 'img/monster.jpg';
-  const opponentImg = opponent.image || `img/${(opponent.species || 'opponent').toLowerCase()}.jpg` || 'img/monster.jpg';
+  const playerImg = getImageSrc(player);
+  const opponentImg = getImageSrc(opponent);
 
   const playerHealthPercent = (player.currentHp / player.hp) * 100;
   const opponentHealthPercent = (opponent.currentHp / opponent.hp) * 100;
@@ -53,9 +57,13 @@ function renderBattle() {
 
 function logBattle(message) {
   const battleLogEl = document.getElementById('battle-log');
+  battleLogEl.innerHTML = ''; // Clear previous messages
   const ts = new Date().toLocaleTimeString();
   const entry = `[${ts}] ${message}`;
-  battleLogEl.innerHTML = entry;
+  const p = document.createElement('div');
+  p.textContent = entry;
+  battleLogEl.appendChild(p);
+  battleLogEl.scrollTop = battleLogEl.scrollHeight;
 }
 
 function battleAction(action) {
