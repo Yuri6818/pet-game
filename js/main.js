@@ -10,37 +10,55 @@ function init() {
 
 // Save/Load Game
 function saveGame() {
-  localStorage.setItem("petGameSave", JSON.stringify(gameState));
+  localStorage.setItem("familiarGameSave", JSON.stringify(gameState));
 }
 
 function loadGame() {
-  const saved = localStorage.getItem("petGameSave");
-  if (saved) {
-    const savedGameState = JSON.parse(saved);
+  let saved = localStorage.getItem("familiarGameSave");
+  let isNewSave = true;
 
-    if (savedGameState.pets) {
-      const migratedPets = savedGameState.pets.map(savedPet => {
-        const initialPetData = gameState.pets.find(p => p.id === savedPet.id) || {};
-        const migratedPet = {
-          ...initialPetData,
-          ...savedPet
+  if (!saved) {
+    saved = localStorage.getItem("petGameSave");
+    isNewSave = false;
+  }
+
+  if (saved) {
+    let savedGameState = JSON.parse(saved);
+
+    // One-time migration from old save
+    if (!isNewSave) {
+      if (savedGameState.pets) {
+        savedGameState.familiars = savedGameState.pets;
+        delete savedGameState.pets;
+      }
+      if (savedGameState.activities && savedGameState.activities.catching) {
+        savedGameState.activities.enchanting = savedGameState.activities.catching;
+        delete savedGameState.activities.catching;
+      }
+    }
+
+    if (savedGameState.familiars) {
+      const migratedFamiliars = savedGameState.familiars.map(savedFamiliar => {
+        const initialFamiliarData = gameState.familiars.find(f => f.id === savedFamiliar.id) || {};
+        const migratedFamiliar = {
+          ...initialFamiliarData,
+          ...savedFamiliar
         };
-        // Ensure essential stats are present, falling back to defaults if necessary
-        migratedPet.hp = migratedPet.hp || 50;
-        migratedPet.attack = migratedPet.attack || 10;
-        migratedPet.defense = migratedPet.defense || 5;
-        migratedPet.speed = migratedPet.speed || 10;
-        migratedPet.hunger = (migratedPet.hunger === null || migratedPet.hunger === undefined) ? 100 : migratedPet.hunger;
-        migratedPet.thirst = (migratedPet.thirst === null || migratedPet.thirst === undefined) ? 100 : migratedPet.thirst;
-        migratedPet.happiness = migratedPet.happiness || 100;
-        return migratedPet;
+        // Ensure essential stats are present
+        migratedFamiliar.hp = migratedFamiliar.hp || 50;
+        migratedFamiliar.attack = migratedFamiliar.attack || 10;
+        migratedFamiliar.defense = migratedFamiliar.defense || 5;
+        migratedFamiliar.speed = migratedFamiliar.speed || 10;
+        migratedFamiliar.hunger = (migratedFamiliar.hunger === null || migratedFamiliar.hunger === undefined) ? 100 : migratedFamiliar.hunger;
+        migratedFamiliar.thirst = (migratedFamiliar.thirst === null || migratedFamiliar.thirst === undefined) ? 100 : migratedFamiliar.thirst;
+        migratedFamiliar.happiness = migratedFamiliar.happiness || 100;
+        return migratedFamiliar;
       });
-      savedGameState.pets = migratedPets;
+      savedGameState.familiars = migratedFamiliars;
     }
     
-    // Now merge the rest of the game state
     // Ensure activities keys exist
-    const requiredActivities = ['foraging','mining','fishing','catching'];
+    const requiredActivities = ['foraging','mining','fishing','catching','enchanting'];
     if (!savedGameState.activities) savedGameState.activities = {};
     requiredActivities.forEach(a => {
       if (!Object.prototype.hasOwnProperty.call(savedGameState.activities, a)) {

@@ -1,3 +1,11 @@
+function playSound(soundFile) {
+  const audio = new Audio(soundFile);
+  audio.play().catch(error => {
+    // Autoplay was prevented.
+    console.log("Playback prevented for " + soundFile);
+  });
+}
+
 console.log("game.js loaded");
 
 // Game Functions
@@ -35,11 +43,11 @@ function buyItem(itemId) {
 
     if (item.name === 'Mystery Box') {
       buyMysteryBox();
-    } else if (item.type === 'pet') {
-      const newPet = createPetFromItem(item, gameState.pets.length + 1);
-      gameState.pets.push(newPet);
+    } else if (item.type === 'familiar') {
+      const newFamiliar = createFamiliarFromItem(item, gameState.familiars.length + 1);
+      gameState.familiars.push(newFamiliar);
       renderPets();
-      showNotification(`You bought a new pet: ${item.name}!`);
+      showNotification(`You bought a new familiar: ${item.name}!`);
       celebrate();
     } else {
       // Add to inventory
@@ -69,11 +77,11 @@ function buyMysteryBox() {
   // Create a deterministic non-empty pool that excludes Mystery Box itself
   const pool = shopItems.filter(i => i.id && i.id !== 205);
   if (!pool.length) {
-    // fallback to hatchablePets
-    pool.push(...hatchablePets);
+    // fallback to hatchableFamiliars
+    pool.push(...hatchableFamiliars);
   }
 
-  // choose item/pet
+  // choose item/familiar
   const randomIndex = Math.floor(Math.random() * pool.length);
   const randomItem = pool[randomIndex];
   if (!randomItem) {
@@ -82,13 +90,13 @@ function buyMysteryBox() {
   }
 
   // Defer UI-heavy effects so click handlers finish quickly
-  if (randomItem.type === 'pet' || randomItem.type === undefined && randomItem.hp) {
-    const newPet = createPetFromItem(randomItem, gameState.pets.length + 1);
-    gameState.pets.push(newPet);
-    renderPets();
+  if (randomItem.type === 'familiar' || randomItem.type === undefined && randomItem.hp) {
+    const newFamiliar = createFamiliarFromItem(randomItem, gameState.familiars.length + 1);
+    gameState.familiars.push(newFamiliar);
+    renderFamiliars();
     saveGame();
     setTimeout(() => {
-      showNotification(`You got a new pet: ${newPet.name} from the Mystery Box!`);
+      showNotification(`You got a new familiar: ${newFamiliar.name} from the Mystery Box!`);
       celebrate();
     }, 80);
   } else {
@@ -120,9 +128,9 @@ function hatchEgg(itemId) {
   if (!egg || egg.type !== 'egg') return;
 
   showHatchingAnimation(() => {
-    const newPetInfo = hatchablePets[Math.floor(Math.random() * hatchablePets.length)];
-    const newPet = createPetFromItem(newPetInfo, gameState.pets.length + 1);
-    gameState.pets.push(newPet);
+    const newFamiliarInfo = hatchableFamiliars[Math.floor(Math.random() * hatchableFamiliars.length)];
+    const newFamiliar = createFamiliarFromItem(newFamiliarInfo, gameState.familiars.length + 1);
+    gameState.familiars.push(newFamiliar);
     
     egg.quantity--;
     if (egg.quantity <= 0) {
@@ -131,21 +139,22 @@ function hatchEgg(itemId) {
 
     renderPets();
     renderInventory();
-    showNotification(`You hatched a ${newPet.name}!`);
+    showNotification(`You hatched a ${newFamiliar.name}!`);
     celebrate();
     saveGame();
   });
 }
 
-// Helper to create pet objects with sane defaults
-function createPetFromItem(item, newId) {
+// Helper to create familiar objects with sane defaults
+function createFamiliarFromItem(item, newId) {
   return {
     id: newId,
-    name: item.name || 'New Pet',
-    species: item.species || item.name || 'Pet',
+    name: item.name || 'New Familiar',
+    color: item.color || 'default',
+    marking: item.marking || 'none',
     level: 1,
     xp: 0,
-    image: item.image || `img/${(item.name || 'pet').toLowerCase()}.jpg`,
+    image: item.image || `img/${(item.name || 'familiar').toLowerCase()}.jpg`,
     hunger: 100,
     thirst: 100,
     happiness: 100,
@@ -170,15 +179,15 @@ function levelUp() {
   }
 }
 
-function levelUpPet(pet) {
-  if (pet.xp >= 100) {
-    pet.level++;
-    pet.xp -= 100;
-    pet.hp += 10;
-    pet.attack += 2;
-    pet.defense += 2;
-    pet.speed += 1;
-    showNotification(`${pet.name} leveled up to level ${pet.level}!`);
+function levelUpFamiliar(familiar) {
+  if (familiar.xp >= 100) {
+    familiar.level++;
+    familiar.xp -= 100;
+    familiar.hp += 10;
+    familiar.attack += 2;
+    familiar.defense += 2;
+    familiar.speed += 1;
+    showNotification(`${familiar.name} leveled up to level ${familiar.level}!`);
     celebrate();
     renderPets();
     saveGame();
@@ -230,6 +239,7 @@ function startForaging() { startActivity('foraging'); }
 function startMining() { startActivity('mining'); }
 function startFishing() { startActivity('fishing'); }
 function startCatching() { startActivity('catching'); }
+function startEnchanting() { startActivity('enchanting'); }
 
 function completeActivity(activityName) {
   const activity = gameState.activities[activityName];
@@ -248,31 +258,50 @@ function completeActivity(activityName) {
     foraging: { coins: 15, dust: 2, xp: 10 },
     mining: { coins: 25, dust: 1, xp: 15 },
     fishing: { coins: 20, dust: 3, xp: 12 },
-    catching: { coins: 10, dust: 5, xp: 20 }
+    catching: { coins: 10, dust: 5, xp: 20 },
+    enchanting: { coins: 10, dust: 5, xp: 20 }
   };
 
   const reward = rewards[activityName];
   gainXP(reward.xp);
 
   if (activityName === 'catching') {
-    // 50% chance to catch a new pet
+    // 50% chance to catch a new familiar
     if (Math.random() < 0.5) {
         const randomItem = {
-          name: `Wildling ${gameState.pets.length + 1}`,
-          species: 'Wildling',
+          name: `Wildling ${gameState.familiars.length + 1}`,
           image: 'img/monster.jpg',
           hp: 40,
           attack: 8,
           defense: 4,
           speed: 12
         };
-        const randomPet = createPetFromItem(randomItem, gameState.pets.length + 1);
-        gameState.pets.push(randomPet);
+        const randomFamiliar = createFamiliarFromItem(randomItem, gameState.familiars.length + 1);
+        gameState.familiars.push(randomFamiliar);
       renderPets();
-  showNotification(`You caught a new pet!`);
-  celebrate();
+      showNotification(`You caught a new familiar!`);
+      celebrate();
     } else {
-      showNotification(`The pet got away...`);
+      showNotification(`The familiar got away...`);
+    }
+  } else if (activityName === 'enchanting') {
+    // 50% chance to enchant a new familiar
+    if (Math.random() < 0.5) {
+        const randomItem = {
+          name: `Sprite ${gameState.familiars.length + 1}`,
+          image: 'img/cat.png',
+          hp: 60,
+          attack: 12,
+          defense: 8,
+          speed: 25
+        };
+        const randomFamiliar = createFamiliarFromItem(randomItem, gameState.familiars.length + 1);
+        gameState.familiars.push(randomFamiliar);
+      renderPets();
+      showNotification(`You enchanted a new familiar!`);
+      celebrate();
+    } else {
+      showNotification(`The familiar resisted the enchantment...`);
     }
   } else {
     gameState.coins += reward.coins;
@@ -284,27 +313,27 @@ function completeActivity(activityName) {
   saveGame();
 }
 
-function interactPet(petId, interactionType) {
-  const pet = gameState.pets.find(p => p.id === petId);
+function interactFamiliar(familiarId, interactionType) {
+  const familiar = gameState.familiars.find(f => f.id === familiarId);
 
   switch (interactionType) {
     case 'play':
-      pet.happiness = Math.min(100, pet.happiness + 10);
-      pet.hunger = Math.max(0, pet.hunger - 5);
+      familiar.happiness = Math.min(100, familiar.happiness + 10);
+      familiar.hunger = Math.max(0, familiar.hunger - 5);
       gainXP(5);
-      showNotification(`${pet.name} is happy! +5 XP`);
-      petAnimation(petId);
+      showNotification(`${familiar.name} is happy! +5 XP`);
+      familiarAnimation(familiarId);
       break;
     case 'feed':
-      pet.hunger = Math.min(100, pet.hunger + 20);
-      pet.thirst = Math.max(0, pet.thirst - 10);
+      familiar.hunger = Math.min(100, familiar.hunger + 20);
+      familiar.thirst = Math.max(0, familiar.thirst - 10);
       gainXP(2);
-      showNotification(`${pet.name} is full! +2 XP`);
+      showNotification(`${familiar.name} is full! +2 XP`);
       break;
     case 'water':
-      pet.thirst = Math.min(100, pet.thirst + 20);
+      familiar.thirst = Math.min(100, familiar.thirst + 20);
       gainXP(2);
-      showNotification(`${pet.name} is hydrated! +2 XP`);
+      showNotification(`${familiar.name} is hydrated! +2 XP`);
       break;
   }
 
@@ -323,11 +352,11 @@ function useItem(itemId) {
   
   // Simple item effects
   if (item.name.includes('Potion')) {
-    // Heal all pets
-    gameState.pets.forEach(pet => {
-      pet.happiness = Math.min(100, pet.happiness + 20);
+    // Heal all familiars
+    gameState.familiars.forEach(familiar => {
+      familiar.happiness = Math.min(100, familiar.happiness + 20);
     });
-    showNotification('All pets feel refreshed!');
+    showNotification('All familiars feel refreshed!');
   } else if (item.name.includes('Crystal')) {
     // Gain XP
     gainXP(25);
@@ -340,6 +369,6 @@ function useItem(itemId) {
   }
   
   renderInventory();
-  renderPets();
+  renderFamiliars();
   saveGame();
 }

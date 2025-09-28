@@ -1,34 +1,34 @@
 let battleState = {
-  playerPet: null,
-  opponentPet: null,
+  playerFamiliar: null,
+  opponentFamiliar: null,
   turn: 'player',
   log: [],
   timeoutId: null
 };
 
-function startBattle(petId) {
-  const playerPet = gameState.pets.find(p => p.id === petId);
-  if (!playerPet) {
-    showNotification('Selected pet not found for battle.');
+function startBattle(familiarId) {
+  const playerFamiliar = gameState.familiars.find(f => f.id === familiarId);
+  if (!playerFamiliar) {
+    showNotification('Selected familiar not found for battle.');
     return;
   }
-  const opponentPet = opponents[Math.floor(Math.random() * opponents.length)];
+  const opponentFamiliar = opponents[Math.floor(Math.random() * opponents.length)];
 
-  battleState.playerPet = { ...playerPet, currentHp: Number(playerPet.hp) || 50 };
-  battleState.opponentPet = { ...opponentPet, currentHp: Number(opponentPet.hp) || 50 };
+  battleState.playerFamiliar = { ...playerFamiliar, currentHp: Number(playerFamiliar.hp) || 50 };
+  battleState.opponentFamiliar = { ...opponentFamiliar, currentHp: Number(opponentFamiliar.hp) || 50 };
   battleState.log = [];
 
   showSection('battle');
   renderBattle();
-  logBattle(`A wild ${opponentPet.name} appeared!`);
+  logBattle(`A wild ${opponentFamiliar.name} appeared!`);
 }
 
 function renderBattle() {
-  const playerPetEl = document.getElementById('player-pet');
-  const opponentPetEl = document.getElementById('opponent-pet');
-  // Guard: ensure pets exist
-  const player = battleState.playerPet || {};
-  const opponent = battleState.opponentPet || {};
+  const playerFamiliarEl = document.getElementById('player-familiar');
+  const opponentFamiliarEl = document.getElementById('opponent-familiar');
+  // Guard: ensure familiars exist
+  const player = battleState.playerFamiliar || {};
+  const opponent = battleState.opponentFamiliar || {};
 
   const playerImg = getImageSrc(player);
   const opponentImg = getImageSrc(opponent);
@@ -36,7 +36,7 @@ function renderBattle() {
   const playerHealthPercent = (player.currentHp / player.hp) * 100;
   const opponentHealthPercent = (opponent.currentHp / opponent.hp) * 100;
 
-  playerPetEl.innerHTML = `
+  playerFamiliarEl.innerHTML = `
     <h3>${player.name || 'Unknown'}</h3>
     <img src="${playerImg}" alt="${player.name || 'player'}" onerror="this.onerror=null;this.src='img/monster.jpg'">
     <p>HP: ${player.currentHp ?? 0} / ${player.hp ?? 0}</p>
@@ -45,7 +45,7 @@ function renderBattle() {
     </div>
   `;
 
-  opponentPetEl.innerHTML = `
+  opponentFamiliarEl.innerHTML = `
     <h3>${opponent.name || 'Unknown'}</h3>
     <img src="${opponentImg}" alt="${opponent.name || 'opponent'}" onerror="this.onerror=null;this.src='img/monster.jpg'">
     <p>HP: ${opponent.currentHp ?? 0} / ${opponent.hp ?? 0}</p>
@@ -73,8 +73,8 @@ function battleAction(action) {
 }
 
 function playerTurn(action) {
-  const player = battleState.playerPet;
-  const opponent = battleState.opponentPet;
+  const player = battleState.playerFamiliar;
+  const opponent = battleState.opponentFamiliar;
 
   if (!player) {
     console.error("Error: 'player' is null. Cannot set 'isDefending'.");
@@ -86,19 +86,21 @@ function playerTurn(action) {
 
   switch (action) {
     case 'attack':
-      playSound(200, 0.1, 'triangle');
+      playSound('sounds/attack.ogg');
       const damage = calculateDamage(player, opponent);
       opponent.currentHp = Math.max(0, opponent.currentHp - damage);
       logBattle(`${player.name} attacks ${opponent.name} for ${damage} damage!`);
       // visual hit on opponent
-      const oppEl = document.getElementById('opponent-pet');
+      const oppEl = document.getElementById('opponent-familiar');
       if (oppEl) {
-        oppEl.classList.add('hit');
-        setTimeout(() => oppEl.classList.remove('hit'), 350);
+        oppEl.classList.add('hit', 'shake');
+        setTimeout(() => {
+            oppEl.classList.remove('hit', 'shake');
+        }, 500);
       }
       break;
     case 'defend':
-      playSound(400, 0.1, 'sine');
+      playSound('sounds/defend.wav');
       player.isDefending = true;
       logBattle(`${player.name} is defending!`);
       break;
@@ -115,22 +117,24 @@ function playerTurn(action) {
 }
 
 function opponentTurn() {
-  const player = battleState.playerPet;
-  const opponent = battleState.opponentPet;
+  const player = battleState.playerFamiliar;
+  const opponent = battleState.opponentFamiliar;
 
   if (!player || !opponent) {
-    console.error("Player or opponent pet is null. Cannot proceed with the turn.");
+    console.error("Player or opponent familiar is null. Cannot proceed with the turn.");
     return;
   }
 
-  playSound(200, 0.1, 'triangle');
+  playSound('sounds/attack.ogg');
   const damage = calculateDamage(opponent, player);
   player.currentHp = Math.max(0, player.currentHp - damage);
   logBattle(`${opponent.name} attacks ${player.name} for ${damage} damage!`);
-  const playerEl = document.getElementById('player-pet');
+  const playerEl = document.getElementById('player-familiar');
   if (playerEl) {
-    playerEl.classList.add('hit');
-    setTimeout(() => playerEl.classList.remove('hit'), 350);
+    playerEl.classList.add('hit', 'shake');
+    setTimeout(() => {
+        playerEl.classList.remove('hit', 'shake');
+    }, 500);
   }
 
   renderBattle();
@@ -154,8 +158,8 @@ function calculateDamage(attacker, defender) {
 }
 
 function checkWinner() {
-  const player = battleState.playerPet;
-  const opponent = battleState.opponentPet;
+  const player = battleState.playerFamiliar;
+  const opponent = battleState.opponentFamiliar;
 
   if (player.currentHp <= 0) {
     endBattle('lose');
@@ -173,35 +177,35 @@ function endBattle(result) {
   battleActionsEl.style.display = 'none';
 
   if (result === 'win') {
-    playSound(523, 0.2, 'triangle');
-    logBattle(`You defeated ${battleState.opponentPet.name}!`);
-    const xpGained = battleState.opponentPet.level * 5;
+    playSound('sounds/win.wav');
+    logBattle(`You defeated ${battleState.opponentFamiliar.name}!`);
+    const xpGained = battleState.opponentFamiliar.level * 5;
     gainXP(xpGained);
     
-    const pet = gameState.pets.find(p => p.id === battleState.playerPet.id);
-    if (pet) {
-      pet.xp += xpGained;
-      levelUpPet(pet);
+    const familiar = gameState.familiars.find(f => f.id === battleState.playerFamiliar.id);
+    if (familiar) {
+      familiar.xp += xpGained;
+      levelUpFamiliar(familiar);
     }
 
-    showNotification(`You and your pet gained ${xpGained} XP!`);
+    showNotification(`You and your familiar gained ${xpGained} XP!`);
     celebrate();
   } else if (result === 'lose') {
-    playSound(164, 0.2, 'sawtooth');
-    logBattle(`You were defeated by ${battleState.opponentPet.name}...`);
+    playSound('sounds/lose.wav');
+    logBattle(`You were defeated by ${battleState.opponentFamiliar.name}...`);
     showNotification(`You lost the battle...`);
   }
 
   battleState = {
-    playerPet: null,
-    opponentPet: null,
+    playerFamiliar: null,
+    opponentFamiliar: null,
     turn: 'player',
     log: [],
     timeoutId: null
   };
 
   setTimeout(() => {
-    showSection('pets');
+    showSection('familiars');
     battleActionsEl.style.display = 'flex';
   }, 3000);
 }

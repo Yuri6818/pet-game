@@ -119,10 +119,10 @@ function showHatchingAnimation(callback) {
 
 // Render Functions
 function renderPets() {
-  const container = document.getElementById('petContainer');
+  const container = document.getElementById('familiarContainer');
   container.innerHTML = '';
   
-  gameState.pets.filter(pet => pet.name).forEach(pet => {
+  gameState.familiars.filter(pet => pet.name).forEach(pet => {
     const div = document.createElement('div');
     div.className = 'card pet-card';
     div.dataset.petId = pet.id;
@@ -236,12 +236,16 @@ function renderAllSections() {
 let _audioCtx = null;
 function playSound(freq = 440, duration = 0.12, type = 'sine') {
   try {
-    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Create context on first use or if not allowed
+    if (!_audioCtx || _audioCtx.state === 'closed') {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
     const ctx = _audioCtx;
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.type = type;
-    o.frequency.value = freq;
+    // Use audioCtx.currentTime for scheduling
+    o.frequency.setValueAtTime(freq, ctx.currentTime);
     o.connect(g);
     g.connect(ctx.destination);
     g.gain.setValueAtTime(0.0001, ctx.currentTime);
@@ -279,9 +283,19 @@ function spawnConfetti(count = 12) {
 }
 
 function celebrate() {
-  // quick tri-tone
-  playSound(880, 0.08, 'sine');
-  setTimeout(() => playSound(1100, 0.08, 'sine'), 90);
-  setTimeout(() => playSound(660, 0.12, 'sawtooth'), 180);
+  // Only play if audio context is available
+  if (!_audioCtx || _audioCtx.state === 'closed') {
+    try {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      console.warn('Audio unavailable');
+      return;
+    }
+  }
+  // quick tri-tone with proper scheduling
+  const now = _audioCtx.currentTime;
+  playSound(440, 0.08, 'sine');
+  setTimeout(() => playSound(550, 0.08, 'sine'), 90);
+  setTimeout(() => playSound(330, 0.12, 'sawtooth'), 180);
   spawnConfetti(12);
 }
